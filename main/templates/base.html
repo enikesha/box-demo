@@ -36,7 +36,7 @@
           <ul class="nav navbar-nav">
             {% url 'index' as index_url %}
             {% url 'box' as box_url %}
-            {% url 'edit' as edit_url %}
+            {% url 'note_list' as edit_url %}
             {% url 'about' as about_url %}
             <li{% menu_active index_url True %}><a href="{{ index_url }}">Home</a></li>
             <li{% menu_active box_url %}><a href="{{ box_url }}">Box</a></li>
