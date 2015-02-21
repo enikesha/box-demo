@@ -6532,6 +6532,9 @@ button.close {
 body {
   padding-top: 50px;
 }
+.content {
+  margin: 40px 15px;
+}
 .starter-template {
   padding: 40px 15px;
   text-align: center;
