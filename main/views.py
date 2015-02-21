@@ -49,6 +49,8 @@ def note_add(request):
         form = NoteForm(request.POST)
         if form.is_valid():
             note = form.save(False)
+            if not request.session.session_key:
+                request.session.flush()
             note.session = request.session.session_key
             note.save()
             return redirect('note_list')
