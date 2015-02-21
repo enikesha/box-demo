@@ -52,3 +52,12 @@ docs/_build/
 
 # PyBuilder
 target/
+
+# Node.js
+node_modules/
+
+# Bower
+bower_components/
+
+# sqlite3 database
+db.sqlite3

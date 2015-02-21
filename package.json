@@ -1,0 +1,14 @@
+{
+  "name": "box-demo",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Innokentiy Enikeev <enikesha@gmail.com>",
+  "devDependencies": {
+    "gulp": "^3.8.11",
+    "gulp-less": "^3.0.0",
+    "bower": "^1.3.12"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "box-demo",
+  "version": "0.0.0",
+  "authors": [
+    "Innokentiy Enikeev <enikesha@gmail.com>"
+  ],
+  "description": "box.com integration webapp",
+  "moduleType": [
+    "globals"
+  ],
+  "license": "MIT",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "devDependencies": {
+    "bootstrap": "~3.3.2",
+    "jquery": "~2.1.3"
+  }
+}
