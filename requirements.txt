@@ -1,4 +1,8 @@
 Django==1.7.4
 argparse==1.2.1
+boxsdk==1.0.2
 django-bootstrap3==5.1.1
+enum34==1.0.4
+requests==2.5.1
+six==1.9.0
 wsgiref==0.1.2

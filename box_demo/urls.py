@@ -4,6 +4,7 @@ from django.contrib import admin
 urlpatterns = patterns('',
     url(r'^$', 'main.views.index', name='index'),
     url(r'^box/$', 'main.views.box', name='box'),
+    url(r'^box/oauth2/$', 'main.views.box_oauth2', name='box_oauth2'),
     url(r'^edit/$', 'main.views.note_list', name='note_list'),
     url(r'^edit/add/$', 'main.views.note_add', name='note_add'),
     url(r'^edit/(?P<pk>\d+)/$', 'main.views.note_edit', name='note_edit'),

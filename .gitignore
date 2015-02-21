@@ -61,3 +61,6 @@ bower_components/
 
 # sqlite3 database
 db.sqlite3
+
+# local settings
+box_demo/local_settings.py
