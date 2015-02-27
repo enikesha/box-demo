@@ -10,6 +10,7 @@ urlpatterns = patterns('',
     url(r'^edit/(?P<pk>\d+)/$', 'main.views.note_edit', name='note_edit'),
     url(r'^edit/(?P<pk>\d+)/delete/$', 'main.views.note_delete', name='note_delete'),
     url(r'^about/$', 'main.views.about', name='about'),
+    url(r'^metadata/$', 'main.views.metadata', name='metadata'),
 
     url(r'^admin/', include(admin.site.urls)),
 )

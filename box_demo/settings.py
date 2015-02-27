@@ -98,6 +98,7 @@ STATIC_URL = '/static/'
 
 BOX_CLIENT_ID = ''
 BOX_CLIENT_SECRET = ''
+BOX_API_KEY = ''
 
 try:
     from local_settings import *

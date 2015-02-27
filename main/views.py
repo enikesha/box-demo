@@ -1,8 +1,10 @@
+import os
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.shortcuts import get_object_or_404, render, redirect
 from boxsdk.auth.oauth2 import OAuth2
 from boxsdk.client import Client
+from boxview import boxview
 
 from .models import *
 from .forms import *
@@ -79,3 +81,28 @@ def note_delete(request, pk):
 
 def about(request):
     return render(request, "about.html")
+
+def metadata(request):
+    if 'access_token' not in request.session:
+        return redirect('box')
+    oauth = OAuth2(client_id=settings.BOX_CLIENT_ID,
+                   client_secret=settings.BOX_CLIENT_SECRET,
+                   access_token=request.session['access_token'],
+                   refresh_token=request.session['refresh_token'])
+    folder_id = request.GET.get('folder', '0')
+    client = Client(oauth)
+    folder = client.folder(folder_id=folder_id)
+    folder_info = folder.get(fields=('name', 'path_collection'))
+    items_info = []
+    items_metadata = {}
+    for item in folder.get_items(limit=100, fields=('id','name')):
+        name, ext = os.path.splitext(item['name'])
+        item.filename = name
+        if name.endswith('_metadata'):
+            items_metadata[name[:-9]] = item
+        else:
+            items_info.append(item)
+    for item in items_info:
+        item.metadata = items_metadata.get(item.filename)
+
+    return render(request, "metadata.html", locals())
