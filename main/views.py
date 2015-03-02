@@ -19,16 +19,14 @@ def get_client(request):
     try:
         oauth = OAuth2(client_id=settings.BOX_CLIENT_ID,
                        client_secret=settings.BOX_CLIENT_SECRET,
-                       access_token=request.session['access_token'],
-                       refresh_token=request.session['refresh_token'])
+                       access_token=request.session.get('access_token', None),
+                       refresh_token=request.session.get('refresh_token', None))
         yield Client(oauth)
-    except KeyError:
-        # No 'access_token' or 'refresh_token'
-        pass
     except BoxOAuthException, e:
         print e
-        del request.session['access_token']
-        del request.session['refresh_token']
+        for key in ('access_token', 'refresh_token'):
+            if key in request.session:
+                del request.session[key]
 
 def index(request):
     return render(request, "index.html")
