@@ -1,24 +1,42 @@
+import csv
 import os
+import mimetypes
+from contextlib import contextmanager
+from StringIO import StringIO
 from django.conf import settings
 from django.core.urlresolvers import reverse
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from boxsdk.auth.oauth2 import OAuth2
 from boxsdk.client import Client
-from boxview import boxview
+from boxsdk.exception import BoxOAuthException
 
 from .models import *
 from .forms import *
+
+@contextmanager
+def get_client(request):
+    try:
+        oauth = OAuth2(client_id=settings.BOX_CLIENT_ID,
+                       client_secret=settings.BOX_CLIENT_SECRET,
+                       access_token=request.session['access_token'],
+                       refresh_token=request.session['refresh_token'])
+        yield Client(oauth)
+    except KeyError:
+        # No 'access_token' or 'refresh_token'
+        pass
+    except BoxOAuthException, e:
+        print e
+        del request.session['access_token']
+        del request.session['refresh_token']
 
 def index(request):
     return render(request, "index.html")
 
 def box(request):
     if 'access_token' in request.session:
-        oauth = OAuth2(client_id=settings.BOX_CLIENT_ID,
-                       client_secret=settings.BOX_CLIENT_SECRET,
-                       access_token=request.session['access_token'],
-                       refresh_token=request.session['refresh_token'])
-        user_info = Client(oauth).user(user_id='me').get()
+        with get_client(request) as client:
+            user_info = client.user(user_id='me').get()
     else:
         oauth = OAuth2(client_id=settings.BOX_CLIENT_ID,
                        client_secret=settings.BOX_CLIENT_SECRET)
@@ -83,26 +101,68 @@ def about(request):
     return render(request, "about.html")
 
 def metadata(request):
-    if 'access_token' not in request.session:
-        return redirect('box')
-    oauth = OAuth2(client_id=settings.BOX_CLIENT_ID,
-                   client_secret=settings.BOX_CLIENT_SECRET,
-                   access_token=request.session['access_token'],
-                   refresh_token=request.session['refresh_token'])
-    folder_id = request.GET.get('folder', '0')
-    client = Client(oauth)
-    folder = client.folder(folder_id=folder_id)
-    folder_info = folder.get(fields=('name', 'path_collection'))
-    items_info = []
-    items_metadata = {}
-    for item in folder.get_items(limit=100, fields=('id','name')):
-        name, ext = os.path.splitext(item['name'])
-        item.filename = name
-        if name.endswith('_metadata'):
-            items_metadata[name[:-9]] = item
-        else:
-            items_info.append(item)
-    for item in items_info:
-        item.metadata = items_metadata.get(item.filename)
+    with get_client(request) as client:
+        folder = client.folder(folder_id=request.REQUEST.get('folder', '0'))
+        if request.method == 'POST':
+            # Upload file, preserving original extension
+            name, ext = os.path.splitext(request.FILES['file'].name)
+            folder.upload_stream(request.FILES['file'], request.POST['filename']+ext)
+            return redirect(request.get_full_path())
+        # Browse folder, collecting metadata files
+        folder_info = folder.get(fields=('name', 'path_collection'))
+        items_info = []
+        items_metadata = {}
+        for item in folder.get_items(limit=100, fields=('id','name')):
+            name, ext = os.path.splitext(item['name'])
+            item.filename = name
+            if name.endswith('_metadata'):
+                item.ext = ext.lower()
+                items_metadata[name[:-9]] = item
+            else:
+                items_info.append(item)
+        for item in items_info:
+            item.metadata = items_metadata.get(item.filename)
 
-    return render(request, "metadata.html", locals())
+        if 'view' in request.GET:
+            # View csv file
+            try:
+                file = client.file(request.GET['view']).get(fields=('name',))
+                name, ext = os.path.splitext(file['name'])
+                if ext.lower() == '.csv':
+                    buffer = StringIO()
+                    file.download_to(buffer)
+                    buffer.seek(0)
+                    metadata = list(csv.reader(buffer))
+            except Exception, e:
+                print e
+        return render(request, "metadata.html", locals())
+    # In case OAuth error
+    return redirect('box')
+
+def metadata_download(request, id):
+    with get_client(request) as client:
+        file = client.file(id).get(fields=('name',))
+        filename = file['name']
+        content = file.content()
+        type, encoding = mimetypes.guess_type(filename)
+        if type is None:
+            type = 'application/octet-stream'
+        response = HttpResponse(content)
+        response['Content-Type'] = type
+        response['Content-Length'] = str(len(content))
+        if encoding is not None:
+            response['Content-Encoding'] = encoding
+        # To inspect details for the below code, see http://greenbytes.de/tech/tc2231/
+        if u'WebKit' in request.META['HTTP_USER_AGENT']:
+            # Safari 3.0 and Chrome 2.0 accepts UTF-8 encoded string directly.
+            filename_header = 'filename=%s' % filename.encode('utf-8')
+        elif u'MSIE' in request.META['HTTP_USER_AGENT']:
+            # IE does not support internationalized filename at all.
+            # It can only recognize internationalized URL, so we do the trick via routing rules.
+            filename_header = ''
+        else:
+            # For others like Firefox, we follow RFC2231 (encoding extension in HTTP headers).
+            filename_header = 'filename*=UTF-8\'\'%s' % urllib.quote(filename.encode('utf-8'))
+        response['Content-Disposition'] = 'attachment; ' + filename_header
+        return response
+    return redirect('box')

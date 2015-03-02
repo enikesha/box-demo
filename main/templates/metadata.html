@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="content row">
+  <div class="col-lg-6">
+    <ol class="breadcrumb">
+      {% for path in folder_info.path_collection.entries %}
+      <li><a href="?folder={{ path.id }}">{{ path.name }}</a></li>
+      {% endfor %}
+      <li class="active">{{ folder_info.name }}</li>
+    </ol>
+    <form method="POST" enctype="multipart/form-data" id="upload">{% csrf_token %}
+      <input type="hidden" name="folder" value="{{ folder_info.id }}">
+      <input type="hidden" name="filename" value="">
+      <input type="file" name="file" class="hidden">
+    </form>
+    <table class="table table-bordered">
+      <thead>
+        <tr><th>Contract</th><th>Metadata</th></tr>
+      </thead>
+      <tbody>
+        {% for item in items_info %}
+        <tr>
+          <td>
+            {% if item.type == "folder" %}
+            <a href="?folder={{ item.id }}">{{ item.name }}</a>
+            {% else %}
+            {{ item.name }}
+            {% endif %}
+          </td>
+          <td>
+            {% if item.type == "file" %}
+            {% if item.metadata %}
+            <a class="btn btn-sm btn-success" href="{% url 'metadata_download' item.metadata.id %}">Download</a>
+            {% if item.metadata.ext == '.csv' %}
+            <a class="btn btn-sm btn-info" href="?folder={{ folder_info.id }}&view={{ item.metadata.id }}">View</a>
+            {% endif %}
+            {% else %}
+            <button class="file-selector btn btn-sm btn-primary" data-filename="{{ item.filename }}_metadata">Add</button>
+            {% endif %}
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="col-lg-6">
+    {% if metadata %}
+    <h2>Metadata</h2>
+    <table class="table table-striped">
+      <tbody>
+        {% for row in metadata %}
+        <tr>
+          {% for item in row %}
+          <td>{{ item }}</td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}{{ block.super }}
+<script type="text/javascript">
+  $(function(){
+    $(".file-selector").click(function(e){
+      e.preventDefault();
+      $("input[name='filename']").val($(this).data('filename'));
+      $("input[name='file']").click();
+    });
+    $("input[name='file']").change(function(e){
+      $("#upload").submit();
+    });
+  });
+</script>
+{% endblock %}
