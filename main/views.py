@@ -1,16 +1,20 @@
 import csv
-import os
 import mimetypes
+import os
+import time
 from contextlib import contextmanager
 from StringIO import StringIO
 from django.conf import settings
 from django.core.urlresolvers import reverse
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render, redirect
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 from boxsdk.auth.oauth2 import OAuth2
 from boxsdk.client import Client
 from boxsdk.exception import BoxAPIException, BoxOAuthException
 from boxsdk.object.file import File
+from boxview import boxview
 
 from .models import *
 from .forms import *
@@ -183,3 +187,28 @@ def file_download(request, id):
     with get_client(request) as client:
         return redirect(client.file(id).content_url())
     return redirect('box')
+
+
+@require_POST
+@csrf_exempt
+def box_view_file(request):
+    view_api = boxview.BoxView(settings.BOX_VIEW_API_KEY)
+    with get_client(request) as client:
+        file = client.file(request.POST['file_id'])
+        name = file.get(fields=('name',))['name']
+        view_doc = view_api.create_document(url=file.content_url(),
+                                            name=name)
+        return JsonResponse(view_doc)
+    return redirect('box')
+
+@require_POST
+@csrf_exempt
+def box_view_session(request):
+    view_api = boxview.BoxView(settings.BOX_VIEW_API_KEY)
+    try:
+        return JsonResponse(view_api.create_session(request.POST['document_id'],
+                                                    is_downloadable=True))
+    except boxview.RetryAfter as e:
+        print "session retry after", e.seconds
+        time.sleep(e.seconds) # waiting for next call
+        return JsonResponse({'status': 'much undone'}, status=202)
