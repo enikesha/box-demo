@@ -3,51 +3,63 @@
 {% block content %}
 <div class="content row">
   <div class="col-lg-6">
-    <ol class="breadcrumb">
-      {% for path in folder_info.path_collection.entries %}
-      <li><a href="?folder={{ path.id }}">{{ path.name }}</a></li>
-      {% endfor %}
-      <li class="active">{{ folder_info.name }}</li>
-    </ol>
-    <form method="POST" enctype="multipart/form-data" id="upload">{% csrf_token %}
-      <input type="hidden" name="folder" value="{{ folder_info.id }}">
-      <input type="hidden" name="filename" value="">
-      <input type="file" name="file" class="hidden">
-    </form>
-    <table class="table table-bordered">
-      <thead>
-        <tr><th>Contract</th><th>Metadata</th></tr>
-      </thead>
-      <tbody>
-        {% for item in items_info %}
-        <tr>
-          <td>
-            {% if item.type == "folder" %}
-            <a href="?folder={{ item.id }}">{{ item.name }}</a>
-            {% else %}
-            {{ item.name }}
-            <div class="btn-group pull-right">
-              <button class="file-view btn btn-sm btn-info" data-id="{{ item.id }}" title="View"><i class="glyphicon glyphicon-eye-open"></i> View</button>
-              <a class="btn btn-sm btn-success" href="{% url 'metadata_download' item.id %}" title="Download"><i class="glyphicon glyphicon-download-alt"></i> Download</a>
-            </div>
-            {% endif %}
-          </td>
-          <td>
-            {% if item.type == "file" %}
-            <div class="btn-group pull-right">
-              {% if item.metadata %}
-              <button class="file-view btn btn-sm btn-info" data-id="{{ item.metadata.id }}" title="View"><i class="glyphicon glyphicon-eye-open"></i> View</button>
-              <a class="btn btn-sm btn-success" href="{% url 'metadata_download' item.metadata.id %}" title="Download"><i class="glyphicon glyphicon-download-alt"></i> Download</a>
+    <div class="row">
+      <div class="col-lg-11">
+        <ol class="breadcrumb">
+          {% for path in folder_info.path_collection.entries %}
+          <li><a href="?folder={{ path.id }}">{{ path.name }}</a></li>
+          {% endfor %}
+          <li class="active">{{ folder_info.name }}</li>
+        </ol>
+      </div>
+      <div class="col-lg-1">
+        <button data-id="{{ folder_info.id }}" class="switch btn btn-sm btn-info pull-right">Box</button>
+      </div>
+    </div>
+    <div class="row folder">
+      <form method="POST" enctype="multipart/form-data" id="upload">{% csrf_token %}
+        <input type="hidden" name="folder" value="{{ folder_info.id }}">
+        <input type="hidden" name="filename" value="">
+        <input type="file" name="file" class="hidden">
+      </form>
+      <table class="table table-bordered">
+        <thead>
+          <tr><th>Contract</th><th>Metadata</th></tr>
+        </thead>
+        <tbody>
+          {% for item in items_info %}
+          <tr>
+            <td>
+              {% if item.type == "folder" %}
+              <a href="?folder={{ item.id }}">{{ item.name }}</a>
               {% else %}
-              <button class="file-selector btn btn-sm btn-primary" data-filename="{{ item.filename }}_metadata"><i class="glyphicon glyphicon-plus"></i> Add</button>
+              {{ item.name }}
+              <div class="btn-group pull-right">
+                <button class="file-view btn btn-sm btn-info" data-id="{{ item.id }}" title="View"><i class="glyphicon glyphicon-eye-open"></i> View</button>
+                <a class="btn btn-sm btn-success" href="{% url 'metadata_download' item.id %}" title="Download"><i class="glyphicon glyphicon-download-alt"></i> Download</a>
+              </div>
               {% endif %}
-            </div>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+            </td>
+            <td>
+              {% if item.type == "file" %}
+              <div class="btn-group pull-right">
+                {% if item.metadata %}
+                <button class="file-view btn btn-sm btn-info" data-id="{{ item.metadata.id }}" title="View"><i class="glyphicon glyphicon-eye-open"></i> View</button>
+                <a class="btn btn-sm btn-success" href="{% url 'metadata_download' item.metadata.id %}" title="Download"><i class="glyphicon glyphicon-download-alt"></i> Download</a>
+                {% else %}
+                <button class="file-selector btn btn-sm btn-primary" data-filename="{{ item.filename }}_metadata"><i class="glyphicon glyphicon-plus"></i> Add</button>
+                {% endif %}
+              </div>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="row folder" style="display:none;">
+      <iframe class="folder-view" style="width: 100%;height: 500px;margin: auto;border: none;" src="" seamless="seamless" allowfullscreen="true"></iframe>
+    </div>
   </div>
   <div class="col-lg-6">
     {% if metadata %}
@@ -73,7 +85,7 @@
       </div>
     </div>
     <p id="error" class="hidden alert-danger" style="display:none;"></p>
-    <iframe style="display:none;width: 100%;height: 500px;margin: auto;border: none;" src="" seamless="seamless" allowfullscreen="true"></iframe>
+    <iframe class="view" style="display:none;width: 100%;height: 500px;margin: auto;border: none;" src="" seamless="seamless" allowfullscreen="true"></iframe>
   </div>
 </div>
 {% endblock %}
@@ -107,7 +119,7 @@
           console.log(data);
           $('#progress').toggle();
           $('#error').hide();
-          $('iframe').attr('src', data.urls.view).delay(1000).fadeIn('slow');
+          $('iframe.view').attr('src', data.urls.view).delay(1000).fadeIn('slow');
         },
         202: function() {
           fetchSession(documentID);
@@ -147,6 +159,13 @@
         console.log('Document ID is: ' + data.id);
         fetchSession(data.id);
       });
+    });
+    $(".switch").click(function(e){
+      e.preventDefault();
+      $(".folder").toggle();
+      if ($(".folder-view").attr("src") === ""){
+        $(".folder-view").attr("src", "https://app.box.com/embed_widget/files/0/f/" + $(this).data("id"));
+      }
     });
   });
 </script>
