@@ -11,7 +11,7 @@ urlpatterns = patterns('',
     url(r'^edit/(?P<pk>\d+)/delete/$', 'main.views.note_delete', name='note_delete'),
     url(r'^about/$', 'main.views.about', name='about'),
     url(r'^metadata/$', 'main.views.metadata', name='metadata'),
-    url(r'^metadata/download/(?P<id>\d+)/$', 'main.views.metadata_download', name='metadata_download'),
+    url(r'^metadata/download/(?P<id>\d+)/$', 'main.views.file_download', name='metadata_download'),
 
     url(r'^admin/', include(admin.site.urls)),
 )

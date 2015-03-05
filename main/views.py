@@ -9,10 +9,24 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from boxsdk.auth.oauth2 import OAuth2
 from boxsdk.client import Client
-from boxsdk.exception import BoxOAuthException
+from boxsdk.exception import BoxAPIException, BoxOAuthException
+from boxsdk.object.file import File
 
 from .models import *
 from .forms import *
+
+# monkey-patch box's File object to provide download url
+def File__content_url(self):
+    url = self.get_url('content')
+    box_response = self._session.get(url, expect_json_response=False,
+                                     allow_redirects=False)
+    if box_response.status_code == 302:
+        return box_response.network_response.headers['Location']
+
+    raise BoxAPIException(box_response.status_code,
+                          message="Bad status code from file /content",
+                          url=url, method="GET")
+File.content_url = File__content_url
 
 @contextmanager
 def get_client(request):
@@ -163,4 +177,9 @@ def metadata_download(request, id):
             filename_header = 'filename*=UTF-8\'\'%s' % urllib.quote(filename.encode('utf-8'))
         response['Content-Disposition'] = 'attachment; ' + filename_header
         return response
+    return redirect('box')
+
+def file_download(request, id):
+    with get_client(request) as client:
+        return redirect(client.file(id).content_url())
     return redirect('box')

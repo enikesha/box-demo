@@ -26,12 +26,13 @@
             <a href="?folder={{ item.id }}">{{ item.name }}</a>
             {% else %}
             {{ item.name }}
+            <a class="btn btn-sm btn-success pull-right" href="{% url 'metadata_download' item.id %}" title="Download"><i class="glyphicon glyphicon-download-alt"></i></a>
             {% endif %}
           </td>
           <td>
             {% if item.type == "file" %}
             {% if item.metadata %}
-            <a class="btn btn-sm btn-success" href="{% url 'metadata_download' item.metadata.id %}">Download</a>
+            <a class="btn btn-sm btn-success pull-right" href="{% url 'metadata_download' item.metadata.id %}" title="Download"><i class="glyphicon glyphicon-download-alt"></i></a>
             {% if item.metadata.ext == '.csv' %}
             <a class="btn btn-sm btn-info" href="?folder={{ folder_info.id }}&view={{ item.metadata.id }}">View</a>
             {% endif %}
