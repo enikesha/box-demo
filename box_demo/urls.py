@@ -12,6 +12,7 @@ urlpatterns = patterns('',
     url(r'^about/$', 'main.views.about', name='about'),
     url(r'^metadata/$', 'main.views.metadata', name='metadata'),
     url(r'^metadata/download/(?P<id>\d+)/$', 'main.views.file_download', name='metadata_download'),
+    url(r'^metadata/templates/$', 'main.views.metadata_set_templates', name='metadata-set-templates'),
     url(r'^view/file/$', 'main.views.box_view_file', name='box-view-file'),
     url(r'^view/session/$', 'main.views.box_view_session', name='box-view-session'),
 

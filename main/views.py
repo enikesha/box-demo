@@ -151,6 +151,7 @@ def metadata(request):
                     metadata = list(csv.reader(buffer))
             except Exception, e:
                 print e
+        templates_id = request.session.get('templates_folder')
         return render(request, "metadata.html", locals())
     # In case OAuth error
     return redirect('box')
@@ -212,3 +213,13 @@ def box_view_session(request):
         print "session retry after", e.seconds
         time.sleep(e.seconds) # waiting for next call
         return JsonResponse({'status': 'much undone'}, status=202)
+
+@require_POST
+@csrf_exempt
+def metadata_set_templates(request):
+    with get_client(request) as client:
+        folder_id = request.POST['folder_id']
+        folder = client.folder(folder_id).get(fields=('name',))
+        request.session['templates_folder'] = folder_id
+        return JsonResponse({'id':folder_id})
+    return JsonResponse({'status': 'not authenticated'}, status=403)
