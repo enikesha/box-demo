@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="content row" data-templates-id="{{ templates_id }}">
+<div class="content row">
   <div class="col-lg-6">
     <div class="row">
       <div class="col-lg-11">
@@ -31,32 +31,37 @@
           <tr>
             <td>
               {% if item.type == "folder" %}
-              <a href="?folder={{ item.id }}">{{ item.name }}</a>
+                <a href="?folder={{ item.id }}">{{ item.name }}</a>
                 {% if item.id == templates_id %}
-                <span class="tpl-mark label label-info">templates</span>
+                  <span class="tpl-mark label label-info">templates</span>
                 {% else %}
-                <button class="set-templates btn btn-sm btn-warning pull-right" data-id="{{ item.id }}" title="Set templates folder">
-                  <i class="glyphicon glyphicon-list-alt"></i>
-                </button>
+                  <button class="set-templates btn btn-sm btn-warning pull-right" data-id="{{ item.id }}" title="Set templates folder">
+                    <i class="glyphicon glyphicon-list-alt"></i>
+                  </button>
                 {% endif %}
               {% else %}
-              {{ item.name }}
-              <div class="btn-group pull-right">
-                <button class="file-view btn btn-sm btn-info" data-id="{{ item.id }}" title="View"><i class="glyphicon glyphicon-eye-open"></i> View</button>
-                <a class="btn btn-sm btn-success" href="{% url 'metadata_download' item.id %}" title="Download"><i class="glyphicon glyphicon-download-alt"></i> Download</a>
-              </div>
+                {{ item.name }}
+                <div class="btn-group pull-right">
+                  <button class="file-view btn btn-sm btn-info" data-id="{{ item.id }}" title="View"><i class="glyphicon glyphicon-eye-open"></i> View</button>
+                  <a class="btn btn-sm btn-success" href="{% url 'metadata_download' item.id %}" title="Download"><i class="glyphicon glyphicon-download-alt"></i> Download</a>
+                </div>
               {% endif %}
             </td>
             <td>
               {% if item.type == "file" %}
-              <div class="btn-group pull-right">
+                <div class="btn-group pull-right">
                 {% if item.metadata %}
-                <button class="file-view btn btn-sm btn-info" data-id="{{ item.metadata.id }}" title="View"><i class="glyphicon glyphicon-eye-open"></i> View</button>
-                <a class="btn btn-sm btn-success" href="{% url 'metadata_download' item.metadata.id %}" title="Download"><i class="glyphicon glyphicon-download-alt"></i> Download</a>
+                  <button class="file-view btn btn-sm btn-info" data-id="{{ item.metadata.id }}" title="View"><i class="glyphicon glyphicon-eye-open"></i> View</button>
+                  <a class="btn btn-sm btn-success" href="{% url 'metadata_download' item.metadata.id %}" title="Download"><i class="glyphicon glyphicon-download-alt"></i> Download</a>
                 {% else %}
-                <button class="file-selector btn btn-sm btn-primary" data-filename="{{ item.filename }}_metadata"><i class="glyphicon glyphicon-plus"></i> Add</button>
+                  <button class="file-selector btn btn-sm btn-primary" data-filename="{{ item.filename }}_metadata"><i class="glyphicon glyphicon-plus"></i> Upload</button>
+                  {% if templates_id %}
+                    <button class="template-selector btn btn-sm btn-warning" data-id="{{ item.id }}" data-toggle="modal" data-target="#templateModal">
+                      <i class="glyphicon glyphicon-list-alt"></i> From template
+                    </button>
+                  {% endif %}
                 {% endif %}
-              </div>
+                </div>
               {% endif %}
             </td>
           </tr>
@@ -93,6 +98,30 @@
     </div>
     <p id="error" class="hidden alert-danger" style="display:none;"></p>
     <iframe class="view" style="display:none;width: 100%;height: 500px;margin: auto;border: none;" src="" seamless="seamless" allowfullscreen="true"></iframe>
+  </div>
+</div>
+
+<div class="modal fade" id="templateModal" tabindex="-1" role="dialog" aria-labelledby="templateModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="templateModalLabel">Select template</h4>
+      </div>
+      <div class="modal-body">
+        <div class="modal-pane text-center">
+          <div class="progress progress-striped active">
+            <div class="progress-bar" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%">
+              <span class="sr-only">100% Complete</span>
+            </div>
+          </div>
+        </div>
+        <ul id="templates" class="modal-pane" style="display:none;"></ul>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+      </div>
+    </div>
   </div>
 </div>
 {% endblock %}
@@ -196,7 +225,55 @@
         location.reload();
       });
     });
-
+{% if templates_id %}
+    // Template select dialog
+    $('#templateModal').on('show.bs.modal', function (event) {
+      $(this).data({file_id: $(event.relatedTarget).data('id'),
+                    shown: false});
+      $.ajax({
+        url: '{% url "folder-items" folder_id=templates_id %}',
+        dataType: 'json',
+        error: function(data){ console.log(data) },
+        success: function(data) {
+          var $ul = $("#templates");
+          $ul.empty();
+          $(data).each(function(i, f){
+            if (f.type == "file"){
+              var $li = $('<li>').text(f.name);
+              $li.append($('<button class="select-template btn btn-sm btn-success">')
+                         .text('Select')
+                         .data("id", f.id));
+              $ul.append($li);
+            }
+          });
+          $("#templateModal .modal-pane").toggle();
+          $("#templateModal").data('shown', true)
+        }
+      });
+    });
+    $('#templateModal').on('hidden.bs.modal', function (event) {
+      if ($("#templateModal").data('shown')) {
+        $("#templateModal .modal-pane").toggle();
+      }
+    });
+    // Template select button
+    $("#templateModal").on('click', ".select-template", function(e){
+      e.preventDefault();
+      $.ajax({
+        type: 'POST',
+        data: {template_id: $(this).data('id'),
+               file_id: $("#templateModal").data('file_id')},
+        dataType: 'json',
+        url: '{% url "metadata-select-template" %}',
+        error: function (data) {
+          console.log(data);
+          $("#templateModal").modal('hide');
+        }
+      }).done(function (data) {
+        location.reload();
+      });
+    });
+{% endif %}
   });
 </script>
 {% endblock %}

@@ -32,6 +32,29 @@ def File__content_url(self):
                           url=url, method="GET")
 File.content_url = File__content_url
 
+def File__copy(self, parent_folder, name=None):
+    """Copy the item to the given folder.
+    :param parent_folder:
+    The folder to which the item should be copied.
+    :type parent_folder:
+    :class:`Folder`
+    """
+    import json
+    url = self.get_url('copy')
+    data = {
+        'parent': {'id': parent_folder.object_id}
+    }
+    if name is not None:
+        data['name'] = name
+    box_response = self._session.post(url, data=json.dumps(data))
+    response = box_response.json()
+    return self.__class__(
+        session=self._session,
+        object_id=response['id'],
+        response_object=response,
+    )
+File.copy = File__copy
+
 @contextmanager
 def get_client(request):
     try:
@@ -222,4 +245,27 @@ def metadata_set_templates(request):
         folder = client.folder(folder_id).get(fields=('name',))
         request.session['templates_folder'] = folder_id
         return JsonResponse({'id':folder_id})
+    return JsonResponse({'status': 'not authenticated'}, status=403)
+
+@require_POST
+@csrf_exempt
+def metadata_select_template(request):
+    with get_client(request) as client:
+        template = client.file(request.POST['template_id']).get(fields=('name',))
+        file = client.file(request.POST['file_id']).get(fields=('name','parent'))
+        parent = client.folder(file['parent']['id'])
+        name, _ = os.path.splitext(file['name'])
+        _, ext = os.path.splitext(template['name'])
+        metadata = template.copy(parent, u"{0}_metadata{1}".format(name, ext))
+        return JsonResponse({'id': metadata['id']})
+    return JsonResponse({'status': 'not authenticated'}, status=403)
+
+def folder_items(request, folder_id):
+    with get_client(request) as client:
+        folder = client.folder(folder_id)
+        items = folder.get_items(limit=100, fields=('id','name','type'))
+        return JsonResponse([{'id':i['id'],
+                              'name': i['name'],
+                              'type': i['type']} for i in items],
+                            safe=False)
     return JsonResponse({'status': 'not authenticated'}, status=403)
