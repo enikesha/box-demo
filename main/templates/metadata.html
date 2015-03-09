@@ -74,20 +74,6 @@
     </div>
   </div>
   <div class="col-lg-6">
-    {% if metadata %}
-    <h2>Metadata</h2>
-    <table class="table table-striped">
-      <tbody>
-        {% for row in metadata %}
-        <tr>
-          {% for item in row %}
-          <td>{{ item }}</td>
-          {% endfor %}
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    {% endif %}
     <div id="progress" class="text-center" style="display:none;">
       <p class="lead">Opening…</p>
       <div class="progress progress-striped active">
